@@ -2,6 +2,6 @@ package frameimage
 
 import "fmt"
 
-func main() {
+func frameimage() {
 	fmt.Println("Hello from framed image")
 }
