@@ -8,6 +8,13 @@ import (
 	"github.com/disintegration/imaging"
 )
 
+const (
+	TL = 0
+	TR = 1
+	BR = 2
+	BL = 3
+)
+
 func Render(printImage, frameImage string) {
 	// Load the source image
 	srcImage, err := imaging.Open(printImage)
@@ -41,6 +48,49 @@ func Render(printImage, frameImage string) {
 		return img
 	}
 
+	placeMitre := func( img *image.NRGBA, frame image.Image, position int) *image.NRGBA {
+
+		newFrame := image.NewRGBA(image.Rect(0, 0, frameWidth, frameHeight))
+		
+		maxWidth := frameWidth
+		startPos := 0
+
+		for y := 0; y < frameHeight; y++ {
+			for x:= startPos; x < maxWidth; x++ {
+				pixel := frame.At(x,y)
+				newFrame.Set(x,y,pixel)
+			}
+			startPos++
+		}
+
+		if position == TL {
+			img = imaging.Overlay(img, newFrame, image.Pt(0, 0), 1.0)
+		} else if position == TR {
+			frameImg = imaging.Rotate270(newFrame)
+			img = imaging.Overlay(img, frameImg, image.Pt(dstImage.Bounds().Dx()-frameWidth,0), 1.0 )
+		} else if position == BL {
+			for y := 0; y < frameHeight; y++ {
+				for x:= 0; x < frameWidth; x++ {
+					pixel := img.At(x,y)
+					newFrame.Set(x,y,pixel)
+				}
+			}
+			frameImg = imaging.Rotate90(newFrame)
+			img = imaging.Overlay(img, frameImg, image.Pt(0, dstImage.Bounds().Dy()-frameHeight), 1.0 )
+		} else if position == BR {
+			for y := 0; y < frameHeight; y++ {
+				for x:= 0; x < frameWidth; x++ {
+					pixel := img.At(x,y)
+					newFrame.Set(x,y,pixel)
+				}
+			}
+			frameImg = imaging.Rotate180(newFrame)
+			img = imaging.Overlay(img, frameImg, image.Pt(dstImage.Bounds().Dx()-frameWidth, dstImage.Bounds().Dy()-frameHeight), 1.0 )
+		}
+		return img
+
+	}
+
 	// Top side
 	dstImage = repeatFrame(dstImage, frameImg, image.Pt(frameWidth, 0), true)
 
@@ -54,7 +104,15 @@ func Render(printImage, frameImage string) {
 
 	// Left side (rotate frame 90 degrees)
 	frameImg = imaging.Rotate270(frameImg)
-	dstImage = repeatFrame(dstImage, frameImg, image.Pt(0, frameHeight), false)
+	dstImage = repeatFrame(dstImage, frameImg, image.Pt(0, frameHeight - frameWidth), false)
+
+	// Set mitres Top Left, Top Right, Bottom Left, Bottom Right
+	frameImg = imaging.Rotate270(frameImg)
+	dstImage = placeMitre( dstImage, frameImg, TL )
+	dstImage = placeMitre( dstImage, frameImg, TR )
+	dstImage = placeMitre( dstImage, frameImg, BL )
+	dstImage = placeMitre( dstImage, frameImg, BR )
+
 
 	// Save the resulting image
 	err = imaging.Save(dstImage, "./framed_image.jpg")
