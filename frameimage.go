@@ -33,4 +33,5 @@ func Render(printImage, frameImage string) {
 			if err != nil {
 					log.Fatalf("failed to save image: %v", err)
 			}
+			
 }
