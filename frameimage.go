@@ -2,6 +2,7 @@ package frameimage
 
 import (
 	"image"
+	"image/color"
 	"log"
 
 	"github.com/disintegration/imaging"
@@ -20,31 +21,40 @@ func Render(printImage, frameImage string) {
 		log.Fatalf("failed to open frame image: %v", err)
 	}
 
-	// Define frame width
-	frameWidth := 50 // Adjust as needed
+	frameWidth := frameImg.Bounds().Dx()
+	frameHeight := frameImg.Bounds().Dy()
 
-	// Resize frame for each side
-	frameTopBottom := imaging.Resize(frameImg, srcImage.Bounds().Dx(), frameWidth, imaging.Lanczos)
-	frameLeftRight := imaging.Resize(frameImg, frameWidth, srcImage.Bounds().Dy(), imaging.Lanczos)
+	// Create a new image to hold the result
+	dstImage := imaging.New(srcImage.Bounds().Dx()+2*frameWidth, srcImage.Bounds().Dy()+2*frameHeight, color.NRGBA{0, 0, 0, 0})
+	dstImage = imaging.Paste(dstImage, srcImage, image.Pt(frameWidth, frameHeight))
 
-	// Rotate frame for left and right sides
-	frameLeft := imaging.Rotate90(frameLeftRight)
-	frameRight := imaging.Rotate270(frameLeftRight)
+	// Function to repeat the frame along a side
+	repeatFrame := func(img *image.NRGBA, frame image.Image, start image.Point, horizontal bool) *image.NRGBA {
+		var i int
+		for i = 0; i < img.Bounds().Dx(); i += frame.Bounds().Dx() {
+			if horizontal {
+				img = imaging.Overlay(img, frame, image.Pt(start.X+i, start.Y), 1.0)
+			} else {
+				img = imaging.Overlay(img, frame, image.Pt(start.X, start.Y+i), 1.0)
+			}
+		}
+		return img
+	}
 
-	// Create corner pieces by cropping the frame image
-	cornerPiece := imaging.Crop(frameImg, image.Rect(0, 0, frameWidth, frameWidth))
+	// Top side
+	dstImage = repeatFrame(dstImage, frameImg, image.Pt(frameWidth, 0), true)
 
-	// Apply frames to each side
-	dstImage := imaging.Overlay(srcImage, frameTopBottom, image.Pt(0, 0), 1.0) // Top
-	dstImage = imaging.Overlay(dstImage, frameTopBottom, image.Pt(0, srcImage.Bounds().Dy()-frameWidth), 1.0) // Bottom
-	dstImage = imaging.Overlay(dstImage, frameLeft, image.Pt(0, frameWidth), 1.0) // Left
-	dstImage = imaging.Overlay(dstImage, frameRight, image.Pt(srcImage.Bounds().Dx()-frameWidth, frameWidth), 1.0) // Right
+	// Right side (rotate frame 90 degrees)
+	frameImg = imaging.Rotate90(frameImg)
+	dstImage = repeatFrame(dstImage, frameImg, image.Pt(dstImage.Bounds().Dx()-frameWidth, frameHeight), false)
 
-	// Apply corner pieces
-	dstImage = imaging.Overlay(dstImage, cornerPiece, image.Pt(0, 0), 1.0) // Top-left
-	dstImage = imaging.Overlay(dstImage, cornerPiece, image.Pt(srcImage.Bounds().Dx()-frameWidth, 0), 1.0) // Top-right
-	dstImage = imaging.Overlay(dstImage, cornerPiece, image.Pt(0, srcImage.Bounds().Dy()-frameWidth), 1.0) // Bottom-left
-	dstImage = imaging.Overlay(dstImage, cornerPiece, image.Pt(srcImage.Bounds().Dx()-frameWidth, srcImage.Bounds().Dy()-frameWidth), 1.0) // Bottom-right
+	// Bottom side (rotate frame 90 degrees)
+	frameImg = imaging.Rotate90(frameImg)
+	dstImage = repeatFrame(dstImage, frameImg, image.Pt(frameWidth, dstImage.Bounds().Dy()-frameHeight), true)
+
+	// Left side (rotate frame 90 degrees)
+	frameImg = imaging.Rotate90(frameImg)
+	dstImage = repeatFrame(dstImage, frameImg, image.Pt(0, frameHeight), false)
 
 	// Save the resulting image
 	err = imaging.Save(dstImage, "./framed_image.jpg")
