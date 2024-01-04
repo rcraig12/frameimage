@@ -15,7 +15,7 @@ const (
 	BL = 3
 )
 
-func Render(printImage, frameImage string) {
+func Render(printImage, frameImage, outputImage string) {
 	// Load the source image
 	srcImage, err := imaging.Open(printImage)
 	if err != nil {
@@ -115,7 +115,7 @@ func Render(printImage, frameImage string) {
 
 
 	// Save the resulting image
-	err = imaging.Save(dstImage, "./framed_image.jpg")
+	err = imaging.Save(dstImage, outputImage)
 	if err != nil {
 		log.Fatalf("failed to save image: %v", err)
 	}
