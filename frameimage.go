@@ -49,11 +49,11 @@ func Render(printImage, frameImage string) {
 	dstImage = repeatFrame(dstImage, frameImg, image.Pt(dstImage.Bounds().Dx()-frameWidth, frameHeight), false)
 
 	// Bottom side (rotate frame 90 degrees)
-	frameImg = imaging.Rotate180(frameImg)
+	frameImg = imaging.Rotate270(frameImg)
 	dstImage = repeatFrame(dstImage, frameImg, image.Pt(frameWidth, dstImage.Bounds().Dy()-frameHeight), true)
 
 	// Left side (rotate frame 90 degrees)
-	frameImg = imaging.Rotate270(frameImg)
+	frameImg = imaging.Rotate180(frameImg)
 	dstImage = repeatFrame(dstImage, frameImg, image.Pt(0, frameHeight), false)
 
 	// Save the resulting image
